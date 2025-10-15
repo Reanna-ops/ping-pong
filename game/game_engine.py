@@ -29,16 +29,32 @@ class GameEngine:
             self.player.move(10, self.height)
 
     def update(self):
+        # Move the ball
         self.ball.move()
-        self.ball.check_collision(self.player, self.ai)
 
+        # --- Collision detection with paddles ---
+        ball_rect = self.ball.rect()
+        player_rect = self.player.rect()
+        ai_rect = self.ai.rect()
+
+        if ball_rect.colliderect(player_rect):
+            self.ball.velocity_x = abs(self.ball.velocity_x)  # move right
+        elif ball_rect.colliderect(ai_rect):
+            self.ball.velocity_x = -abs(self.ball.velocity_x)  # move left
+
+        # Bounce off top/bottom walls (if not already handled in ball.move())
+        if self.ball.y <= 0 or self.ball.y + self.ball.size >= self.height:
+            self.ball.velocity_y *= -1
+
+        # Check for scoring
         if self.ball.x <= 0:
             self.ai_score += 1
             self.ball.reset()
-        elif self.ball.x >= self.width:
+        elif self.ball.x + self.ball.size >= self.width:
             self.player_score += 1
             self.ball.reset()
 
+        # Simple AI movement
         self.ai.auto_track(self.ball, self.height)
 
     def render(self, screen):
