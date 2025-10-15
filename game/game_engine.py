@@ -2,8 +2,6 @@ import pygame
 from .paddle import Paddle
 from .ball import Ball
 
-# Game Engine
-
 WHITE = (255, 255, 255)
 
 class GameEngine:
@@ -20,6 +18,9 @@ class GameEngine:
         self.player_score = 0
         self.ai_score = 0
         self.font = pygame.font.SysFont("Arial", 30)
+
+        # Default winning score
+        self.win_score = 5
 
     def handle_input(self):
         keys = pygame.key.get_pressed()
@@ -42,7 +43,7 @@ class GameEngine:
         elif ball_rect.colliderect(ai_rect):
             self.ball.velocity_x = -abs(self.ball.velocity_x)  # move left
 
-        # Bounce off top/bottom walls (if not already handled in ball.move())
+        # Bounce off top/bottom walls
         if self.ball.y <= 0 or self.ball.y + self.ball.size >= self.height:
             self.ball.velocity_y *= -1
 
@@ -70,19 +71,51 @@ class GameEngine:
         screen.blit(player_text, (self.width//4, 20))
         screen.blit(ai_text, (self.width * 3//4, 20))
 
-     def check_game_over(self, screen):
-        """Check if either player reached 5 points and show winner message."""
-        if self.player_score >= 5 or self.ai_score >= 5:
-            winner_text = "Player Wins!" if self.player_score >= 5 else "AI Wins!"
+    def check_game_over(self, screen):
+        """Check if either player reached win_score and handle replay menu."""
+        if self.player_score >= self.win_score or self.ai_score >= self.win_score:
+            # Display winner
+            winner_text = "Player Wins!" if self.player_score >= self.win_score else "AI Wins!"
             text_surface = self.font.render(winner_text, True, WHITE)
-
-            # Center the text on screen
-            text_rect = text_surface.get_rect(center=(self.width // 2, self.height // 2))
+            text_rect = text_surface.get_rect(center=(self.width // 2, self.height // 2 - 50))
             screen.blit(text_surface, text_rect)
+
+            # Replay options
+            options = [
+                "Press 3 for Best of 3",
+                "Press 5 for Best of 5",
+                "Press 7 for Best of 7",
+                "Press ESC to Exit"
+            ]
+            for i, option in enumerate(options):
+                opt_surface = self.font.render(option, True, WHITE)
+                opt_rect = opt_surface.get_rect(center=(self.width // 2, self.height // 2 + 40 + i * 40))
+                screen.blit(opt_surface, opt_rect)
+
             pygame.display.flip()
 
-            # Pause so players can see the message
-            pygame.time.delay(3000)
-            return True  # Game over
-        return False
+            # Wait for user choice
+            waiting = True
+            while waiting:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        return True  # Exit game
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE:
+                            return True  # Exit
+                        elif event.key == pygame.K_3:
+                            self.win_score = 2  # Best of 3 → first to 2 wins
+                            waiting = False
+                        elif event.key == pygame.K_5:
+                            self.win_score = 3  # Best of 5 → first to 3 wins
+                            waiting = False
+                        elif event.key == pygame.K_7:
+                            self.win_score = 4  # Best of 7 → first to 4 wins
+                            waiting = False
 
+            # Reset scores and ball
+            self.player_score = 0
+            self.ai_score = 0
+            self.ball.reset()
+            return False  # Continue game
+        return False
